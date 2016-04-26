@@ -1,7 +1,9 @@
 defmodule Q do
   @moduledoc """
+  Queue used internally by Effects for collecting a sequence of binds.
 
   A queue with the following characteristics:
+
    * non-empty by construction
    * concatenation of two queues: O(1)
    * enqueuing an item to the queue: O(1)
@@ -69,6 +71,17 @@ defmodule Q do
   end
 
   @doc """
+  Convert queue to a list. O(n)
+  """
+  @spec to_list(Q.t(t)) :: [t] when t: term
+  def to_list(queue) do
+    case viewL(queue) do
+      {value} -> [value]
+      {value, rest} -> [value|to_list(rest)]
+    end
+  end
+
+  @doc """
 
   """
   def viewL(%Leaf{value: value}) do
@@ -77,17 +90,6 @@ defmodule Q do
   def viewL(%Node{left: left, right: right}) do
     gu(left, right)
   end
-
-  @doc """
-  Convert queue to a list. O(n)
-  """
-  def to_list(queue) do
-    case viewL(queue) do
-      {value} -> [value]
-      {value, rest} -> [value|to_list(rest)]
-    end
-  end
-
   defp gu(%Leaf{value: value}, rest) do
     {value, rest}
   end

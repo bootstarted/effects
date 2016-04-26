@@ -3,7 +3,7 @@ defmodule Free do
   Implementation of the extensible effects monad in Elixir.
   See: http://okmij.org/ftp/Haskell/extensible/
   """
-  @type t :: Pure.t | Impure.t
+  @type t :: Pure.t | Effect.t
 
   defmodule Pure do
     @moduledoc """
@@ -13,11 +13,11 @@ defmodule Free do
     defstruct [:value]
   end
 
-  defmodule Impure do
+  defmodule Effect do
     @moduledoc """
-    Explain impure.
+    Explain ze effect.
     """
-    @type t(x) :: %Impure{effect: any, next: Q.t(x)}
+    @type t(x) :: %Effect{effect: any, next: Q.t(x)}
     defstruct [:effect, :next]
   end
 
@@ -33,10 +33,10 @@ defmodule Free do
   end
 
   @doc """
-  Create a new impure value.
+  Create a new effect value.
   """
-  def impure(effect, next) do
-    %Impure{effect: effect, next: next}
+  def effect(effect, next) do
+    %Effect{effect: effect, next: next}
   end
 
 
@@ -46,8 +46,8 @@ defmodule Free do
   def fmap(%Pure{value: value}, f) when is_function(f) do
     pure(f.(value))
   end
-  def fmap(%Impure{effect: effect, next: next}, f) when is_function(f) do
-    impure(effect, next |> Q.append(&pure(f.(&1))))
+  def fmap(%Effect{effect: effect, next: next}, f) when is_function(f) do
+    Free.effect(effect, next |> Q.append(&pure(f.(&1))))
   end
 
 
@@ -58,16 +58,16 @@ defmodule Free do
     pure(f.(x))
   end
 
-  def ap(%Pure{value: f}, %Impure{effect: effect, next: next}) do
-    impure(effect, next |> Q.append(&pure(f.(&1))))
+  def ap(%Pure{value: f}, %Effect{effect: effect, next: next}) do
+    Free.effect(effect, next |> Q.append(&pure(f.(&1))))
   end
 
-  def ap(%Impure{effect: effect, next: next}, %Pure{value: x}) do
-    impure(effect, next |> Q.append(&pure(&1.(x))))
+  def ap(%Effect{effect: effect, next: next}, %Pure{value: x}) do
+    Free.effect(effect, next |> Q.append(&pure(&1.(x))))
   end
 
-  def ap(%Impure{effect: effect, next: next}, target) do
-    impure(effect, next |> Q.append(&fmap(target, &1)))
+  def ap(%Effect{effect: effect, next: next}, target) do
+    Free.effect(effect, next |> Q.append(&fmap(target, &1)))
   end
 
   def ap(f, free) when is_function(f) do
@@ -81,8 +81,8 @@ defmodule Free do
     f.(value)
   end
 
-  def bind(%Impure{effect: effect, next: next}, f) when is_function(f) do
-    impure(effect, next |> Q.append(f))
+  def bind(%Effect{effect: effect, next: next}, f) when is_function(f) do
+    Free.effect(effect, next |> Q.append(f))
   end
 
 
@@ -103,8 +103,8 @@ defmodule Free do
   defp herp(%Pure{value: value}, k) do
     queue_apply(k, value)
   end
-  defp herp(%Impure{effect: effect, next: next}, k) do
-    impure(effect, Q.concat(next, k))
+  defp herp(%Effect{effect: effect, next: next}, k) do
+    Free.effect(effect, Q.concat(next, k))
   end
 
   # ----------------------------------------------------------
@@ -137,16 +137,9 @@ defmodule Free do
   """
   defmacro __using__(_) do
     quote do
-      import Free, only: [
-        defeffect: 2,
-        "~>>": 2,
-        "<<~": 2,
-        "~>": 2,
-        pure: 1,
-        impure: 2
-      ]
+      import Free
       alias Free.Pure
-      alias Free.Impure
+      alias Free.Effect
     end
   end
 
@@ -162,7 +155,7 @@ defmodule Free do
   defmacro defeffect(head, do: body) do
     quote do
       def unquote(head) do
-        Free.impure(unquote(body), Q.value(&Free.pure/1))
+        Free.effect(unquote(body), Q.value(&Free.pure/1))
       end
     end
   end

@@ -3,15 +3,15 @@ defmodule Test.Free do
 
   import Free
   alias Free.Pure
-  alias Free.Impure
+  alias Free.Effect
 
   defp interp(_, %Pure{value: value}) do
     value
   end
-  defp interp(value, %Impure{effect: "INC", next: next}) do
+  defp interp(value, %Effect{effect: "INC", next: next}) do
     interp(value + 1, Free.queue_apply(next, value + 1))
   end
-  defp interp(value, %Impure{effect: "FXN", next: next}) do
+  defp interp(value, %Effect{effect: "FXN", next: next}) do
     interp(value, Free.queue_apply(next, fn x -> value + x * 2 end))
   end
 
@@ -28,9 +28,9 @@ defmodule Test.Free do
     end
   end
 
-  describe "impure" do
-    it "should create a new impure object" do
-      expect impure("INC", [&pure/1]) |> to(eq impure("INC", [&pure/1]))
+  describe "effect" do
+    it "should create a new effect object" do
+      expect effect("INC", nil) |> to(be_struct Free.Effect)
     end
   end
 
@@ -39,7 +39,7 @@ defmodule Test.Free do
       expect pure(5) |> fmap(fn x -> (x+1) end)
       |> to(eq pure(6))
     end
-    it "should work with impure values" do
+    it "should work with effect values" do
       expect 2 |> interp(inc |> fmap(fn x -> x * 2 end))
       |> to(eq 6)
     end
@@ -51,17 +51,17 @@ defmodule Test.Free do
       |> to(eq pure(6))
     end
 
-    it "should work with pure/impure" do
+    it "should work with pure/effect" do
       expect 3 |> interp((pure fn x-> (x * 2) end) |> ap(inc))
       |> to(eq 8)
     end
 
-    it "should work with impure/pure" do
+    it "should work with effect/pure" do
       expect 3 |> interp(fxn |> ap(pure(4)))
       |> to(eq 11)
     end
 
-    it "should work with two impure values" do
+    it "should work with two effect values" do
       expect 3 |> interp(fxn |> ap(inc))
       |> to(eq 11)
     end
@@ -72,6 +72,7 @@ defmodule Test.Free do
     end
 
     it "should be executable in parallel" do
+      # TODO: Implement me!
       fn (x,y,z) -> x*y*z end <<~ inc <<~ inc <<~ inc
     end
   end
@@ -81,14 +82,14 @@ defmodule Test.Free do
       expect pure(5) |> bind(fn x -> pure x+1 end)
       |> to(eq pure(6))
     end
-    it "should work with impure values" do
+    it "should work with effect values" do
       expect 3 |> interp(inc |> bind(fn x -> pure(x*2) end))
       |> to(eq 8)
     end
   end
 
   describe "~>>" do
-    it "should work like bind" do
+    it "should work like `bind`" do
       expect pure(5) ~>> fn x -> pure x+1 end
       |> to(eq pure(6))
     end
@@ -101,18 +102,15 @@ defmodule Test.Free do
   end
 
   describe "<<~" do
-    it "should work like apply" do
+    it "should work like `apply`" do
       expect fn x-> (x+1) end <<~ pure(5)
       |> to(eq pure(6))
     end
   end
 
   describe "defeffect" do
-    it "should return a new impure" do
-      expect dex |> to(eq %Impure{
-        effect: "TEST",
-        next: [&pure/1],
-      })
+    it "should return a new effect" do
+      expect dex |> to(be_struct Free.Effect)
     end
   end
 
