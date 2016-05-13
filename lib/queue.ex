@@ -1,4 +1,4 @@
-defmodule Q do
+defmodule Effect.Queue do
   @moduledoc """
   Queue used internally by Effects for collecting a sequence of binds.
 
@@ -8,7 +8,8 @@ defmodule Q do
    * concatenation of two queues: O(1)
    * enqueuing an item to the queue: O(1)
    * dequeuing an item from the queue: ~O(1)
-   * can be type-aligned
+   * is type-aligned
+   * only contains functions
 
   As usual, some Haskell cleverness that has gone underappreciated for some time is now available in Elixir. Everything here is fairly trivial with the sole
   exception of how `dequeue` manages to achieve `O(1)` _generally_.
@@ -26,15 +27,18 @@ defmodule Q do
   See: http://okmij.org/ftp/Haskell/Reflection.html
   """
 
-  # NOTE: The current typing mechanism does _NOT_ allow for type-aligned
-  # sequences unfortunately. Just plain old Queue<T> style for now.
-  @type t(x) :: Leaf.t(x) | Node.t(x)
+  alias Effect.Queue, as: Q
+
+  @type t(i, o) :: Q.Leaf.t(i, o) | Q.Node.t(i, o)
 
   defmodule Node do
     @moduledoc """
 
     """
-    @type t(x) :: %Node{left: Q.t(x), right: Q.t(x)}
+    @type t(i, o) :: %Node{
+      left: Q.t(i, any),
+      right: Q.t(any, o),
+    }
     defstruct [:left, :right]
   end
 
@@ -42,14 +46,16 @@ defmodule Q do
     @moduledoc """
 
     """
-    @type t(x) :: %Leaf{value: x}
+    @type t(i, o) :: %Leaf{
+      value: (i -> o)
+    }
     defstruct [:value]
   end
 
   @doc """
   Constructor for new leaves.
   """
-  @spec value(t) :: Q.t(t) when t: term
+  @spec value((i -> o)) :: Q.t(i, o) when i: any, o: any
   def value(value) do
     %Leaf{value: value}
   end
@@ -57,7 +63,7 @@ defmodule Q do
   @doc """
   Concatenate two queues together.
   """
-  @spec concat(Q.t(a), Q.t(a)) :: Q.t(a) when a: term
+  @spec concat(Q.t(i, x), Q.t(x, o)) :: Q.t(i, o) when i: any, o: any, x: any
   def concat(a, b) do
     %Node{left: a, right: b}
   end
@@ -65,36 +71,42 @@ defmodule Q do
   @doc """
   Append a value to the queue.
   """
-  @spec append(Q.t(t), t) :: Q.t(t) when t: term
+  @spec append(Q.t(i, x), (x -> o)) :: Q.t(i, o) when i: any, o: any, x: any
   def append(t, v) do
     concat(t, value(v))
   end
 
   @doc """
-  Convert queue to a list. O(n)
+  Convert queue to a list. Loses type-alignment.
   """
-  @spec to_list(Q.t(t)) :: [t] when t: term
+  # @spec to_list(Q.t(i, o)) :: [(... -> any)] when i: any, o: any
   def to_list(queue) do
-    case viewL(queue) do
+    case pop(queue) do
       {value} -> [value]
       {value, rest} -> [value|to_list(rest)]
     end
   end
 
   @doc """
-
+  Remove an element from the queue, returning a tuple with a single element if
+  the queue is now empty, or a tuple with two elements if the queue is not. The
+  first element in the tuple is the popped value from the queue, the second is
+  the remainder of the queue.
   """
-  def viewL(%Leaf{value: value}) do
+  @spec pop(Q.t(i, o)) :: {(i -> o)} | {(i -> x), Q.t(x, o)} when i: any, o: any, x: any
+  def pop(%Leaf{value: value}) do
     {value}
   end
-  def viewL(%Node{left: left, right: right}) do
-    gu(left, right)
+  def pop(%Node{left: left, right: right}) do
+    pop(left, right)
   end
-  defp gu(%Leaf{value: value}, rest) do
+
+  @spec pop(Q.t(i, x), Q.t(x, o)) :: {(i -> x), Q.t(x, o)} when i: any, o: any, x: any
+  defp pop(%Leaf{value: value}, rest) do
     {value, rest}
   end
-  defp gu(%Node{left: left, right: right}, rest) do
-    gu(left, concat(right, rest))
+  defp pop(%Node{left: left, right: right}, rest) do
+    pop(left, concat(right, rest))
   end
 
 end
