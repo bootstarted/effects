@@ -4,6 +4,8 @@ defmodule Effect.Mixfile do
   def project do [
     app: :effects,
     version: "0.1.0",
+    description: description,
+    package: package,
     elixir: "~> 1.2",
     build_embedded: Mix.env == :prod,
     start_permanent: Mix.env == :prod,
@@ -28,6 +30,20 @@ defmodule Effect.Mixfile do
   def application do
     [applications: [:logger]]
   end
+
+  defp description do
+    """
+    Monadic, softly-typed, extensible effect handling in Elixir.
+    """
+  end
+
+  defp package do [
+   name: :effects,
+   files: ["lib", "mix.exs", "README*"],
+   maintainers: ["Izaak Schroeder"],
+   licenses: ["CC0-1.0"],
+   links: %{"GitHub" => "https://github.com/metalabdesign/effects"}
+  ] end
 
   defp aliases do [
     lint: ["dogma"],
