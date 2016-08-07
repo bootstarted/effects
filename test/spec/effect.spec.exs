@@ -1,19 +1,31 @@
 defmodule Test.Free do
   use ESpec
 
-  import Free
-  alias Free.Pure
-  alias Free.Effect
+  import Effect
+  alias Effect.Pure
+  alias Effect.Effect
 
   defp interp(_, %Pure{value: value}) do
     value
   end
   defp interp(value, %Effect{effect: "INC", next: next}) do
-    interp(value + 1, Free.queue_apply(next, value + 1))
+    interp(value + 1, queue_apply(next, value + 1))
   end
   defp interp(value, %Effect{effect: "FXN", next: next}) do
-    interp(value, Free.queue_apply(next, fn x -> value + x * 2 end))
+    interp(value, queue_apply(next, fn x -> value + x * 2 end))
   end
+
+  # defp anterp({_, state}, %Pure{value: value}) do
+  #   {value, state}
+  # end
+  # defp anterp({value,{x,y}} %Effect{effect: "INCX", next: next}) do
+  #   result = Task.async(fn -> Task.await(x) + 1 end)
+  #   interp({value, {result, y}}, queue_apply(next, result))
+  # end
+  # defp anterp(value, %Effect{effect: "INCY", next: next}) do
+  #   result = Task.async(fn -> value + 1 end)
+  #   interp(value + 1, queue_apply(next, value + 1))
+  # end
 
   defeffect inc, do: "INC"
   defeffect fxn, do: "FXN"
@@ -30,7 +42,7 @@ defmodule Test.Free do
 
   describe "effect" do
     it "should create a new effect object" do
-      expect effect("INC", nil) |> to(be_struct Free.Effect)
+      expect effect(nil, "INC", nil) |> to(be_struct Effect)
     end
   end
 
@@ -71,10 +83,15 @@ defmodule Test.Free do
       |> to(eq pure(6))
     end
 
-    it "should be executable in parallel" do
-      # TODO: Implement me!
-      fn (x,y,z) -> x*y*z end <<~ inc <<~ inc <<~ inc
+    it "should work with multiple arguments" do
+      expect (fn x,y -> (x+y) end) |> ap(pure(5)) |> ap(pure(3))
+      |> to(eq pure(8))
     end
+
+    # it "should be executable in parallel" do
+    #   # TODO: Implement me!
+    #   fn (x,y,z) -> x*y*z end <<~ inc <<~ inc <<~ inc
+    # end
   end
 
   describe "bind" do
@@ -103,14 +120,18 @@ defmodule Test.Free do
 
   describe "<<~" do
     it "should work like `apply`" do
-      expect fn x-> (x+1) end <<~ pure(5)
+      expect fn x -> (x+1) end <<~ pure(5)
+      |> to(eq pure(6))
+    end
+    it "should work like `apply` for multiple arguments" do
+      expect fn x,y -> (x+y) end <<~ pure(5) <<~ pure(1)
       |> to(eq pure(6))
     end
   end
 
   describe "defeffect" do
     it "should return a new effect" do
-      expect dex |> to(be_struct Free.Effect)
+      expect dex |> to(be_struct Effect)
     end
   end
 

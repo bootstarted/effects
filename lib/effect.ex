@@ -1,9 +1,12 @@
-defmodule Free do
+defmodule Effect do
   @moduledoc """
   Implementation of the extensible effects monad in Elixir.
   See: http://okmij.org/ftp/Haskell/extensible/
   """
-  @type t :: Pure.t | Effect.t
+  @type t(effects) :: Pure.t(any) | Effect.t(effects)
+
+  import Effect.Curry
+  alias Effect.Queue, as: Q
 
   defmodule Pure do
     @moduledoc """
@@ -17,8 +20,8 @@ defmodule Free do
     @moduledoc """
     Explain ze effect.
     """
-    @type t(x) :: %Effect{effect: any, next: Q.t(x)}
-    defstruct [:effect, :next]
+    @type t(x, i, o) :: %Effect{effect: x, next: Q.t(i, o)}
+    defstruct [:domain, :effect, :next]
   end
 
   # ----------------------------------------------------------
@@ -28,6 +31,7 @@ defmodule Free do
   @doc """
   Create a new pure value.
   """
+  @spec pure(type) :: Effect.t(any) when type: any
   def pure(value) do
     %Pure{value: value}
   end
@@ -35,41 +39,46 @@ defmodule Free do
   @doc """
   Create a new effect value.
   """
-  def effect(effect, next) do
-    %Effect{effect: effect, next: next}
+  @spec effect(atom, any, any) :: Effect.t(any)
+  def effect(domain, effect, next) do
+    %Effect{domain: domain, effect: effect, next: next}
   end
 
 
   # ----------------------------------------------------------
   # Functor
   # ----------------------------------------------------------
+  @spec fmap(Effect.t(any), (... -> any)) :: Effect.t(any)
+  @doc """
+
+  """
   def fmap(%Pure{value: value}, f) when is_function(f) do
     pure(f.(value))
   end
-  def fmap(%Effect{effect: effect, next: next}, f) when is_function(f) do
-    Free.effect(effect, next |> Q.append(&pure(f.(&1))))
+  def fmap(%Effect{next: next} = effect, f) when is_function(f) do
+    %Effect{effect | next: next |> Q.append(&pure(f.(&1)))}
   end
 
 
   # ----------------------------------------------------------
   # Applicative
   # ----------------------------------------------------------
+  @spec fmap(Effect.t(any), Effect.t((... -> any))) :: Effect.t(any)
+  @doc """
+
+  """
   def ap(%Pure{value: f}, %Pure{value: x}) do
-    pure(f.(x))
+    pure(curry(f).(x))
   end
-
-  def ap(%Pure{value: f}, %Effect{effect: effect, next: next}) do
-    Free.effect(effect, next |> Q.append(&pure(f.(&1))))
+  def ap(%Pure{value: f}, %Effect{next: next} = effect) do
+    %Effect{effect | next: next |> Q.append(&pure(curry(f).(&1)))}
   end
-
-  def ap(%Effect{effect: effect, next: next}, %Pure{value: x}) do
-    Free.effect(effect, next |> Q.append(&pure(&1.(x))))
+  def ap(%Effect{next: next} = effect, %Pure{value: x}) do
+    %Effect{effect | next: next |> Q.append(&pure(curry(&1).(x)))}
   end
-
-  def ap(%Effect{effect: effect, next: next}, target) do
-    Free.effect(effect, next |> Q.append(&fmap(target, &1)))
+  def ap(%Effect{next: next} = effect, target) do
+    %Effect{effect | next: next |> Q.append(&fmap(target, curry(&1)))}
   end
-
   def ap(f, free) when is_function(f) do
     ap(pure(f), free)
   end
@@ -77,12 +86,15 @@ defmodule Free do
   # ----------------------------------------------------------
   # Monad
   # ----------------------------------------------------------
+  @spec fmap(Effect.t(any), (... -> Effect.t(any))) :: Effect.t(any)
+  @doc """
+
+  """
   def bind(%Pure{value: value}, f) when is_function(f) do
     f.(value)
   end
-
-  def bind(%Effect{effect: effect, next: next}, f) when is_function(f) do
-    Free.effect(effect, next |> Q.append(f))
+  def bind(%Effect{next: next} = effect, f) when is_function(f) do
+    %Effect{effect | next: next |> Q.append(f)}
   end
 
 
@@ -90,7 +102,7 @@ defmodule Free do
   # Interpreter
   # ----------------------------------------------------------
   def queue_apply(list, x) do
-    case Q.viewL(list) do
+    case Q.pop(list) do
       {k} -> k.(x)
       {k, t} -> herp(k.(x), t)
     end
@@ -103,8 +115,8 @@ defmodule Free do
   defp herp(%Pure{value: value}, k) do
     queue_apply(k, value)
   end
-  defp herp(%Effect{effect: effect, next: next}, k) do
-    Free.effect(effect, Q.concat(next, k))
+  defp herp(%Effect{next: next} = effect, k) do
+    %Effect{effect | next: Q.concat(next, k)}
   end
 
   # ----------------------------------------------------------
@@ -155,7 +167,11 @@ defmodule Free do
   defmacro defeffect(head, do: body) do
     quote do
       def unquote(head) do
-        Free.effect(unquote(body), Q.value(&Free.pure/1))
+        %Effect{
+          domain: __MODULE__,
+          effect: unquote(body),
+          next: Q.value(&pure/1)
+        }
       end
     end
   end
