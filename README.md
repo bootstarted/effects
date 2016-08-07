@@ -2,6 +2,12 @@
 
 Monadic, softly-typed, extensible effect handling in Elixir.
 
+![build status](http://img.shields.io/travis/metalabdesign/effects/master.svg?style=flat)
+![coverage](http://img.shields.io/coveralls/metalabdesign/effects/master.svg?style=flat)
+![license](http://img.shields.io/hexpm/l/effects.svg?style=flat)
+![version](http://img.shields.io/hexpm/v/effects.svg?style=flat)
+![downloads](http://img.shields.io/hexpm/dt/effects.svg?style=flat)
+
 ## Overview
 
 Based on the incredible works of:
