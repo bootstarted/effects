@@ -3,7 +3,7 @@ defmodule Effects.Mixfile do
 
   def project do [
     app: :effects,
-    version: "0.1.0",
+    version: "0.1.1",
     description: description,
     package: package,
     elixir: "~> 1.2",
