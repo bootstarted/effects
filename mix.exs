@@ -59,5 +59,7 @@ defmodule Effects.Mixfile do
     {:espec, "~> 0.8.17", only: [:dev, :test]},
     # Linting
     {:dogma, "~> 0.1.4", only: [:dev, :test]},
+    # Documentation generation
+    {:ex_doc, "~> 0.13.0", only: [:dev]},
   ] end
 end
