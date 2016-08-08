@@ -1,4 +1,4 @@
-defmodule Effect.Curry do
+defmodule Effects.Curry do
   @moduledoc """
   Runtime function currying. Needed for making applicatives behave sensibly. It
   is not as fancy as algae's `defcurry` but it requires no changes to the

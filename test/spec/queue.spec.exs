@@ -1,7 +1,7 @@
-defmodule Test.Effect.Queue do
+defmodule Test.Effects.Queue do
   use ESpec
 
-  alias Effect.Queue, as: Q
+  alias Effects.Queue, as: Q
 
   describe "value" do
     it "should work" do

@@ -1,12 +1,12 @@
-defmodule Effect do
+defmodule Effects do
   @moduledoc """
   Implementation of the extensible effects monad in Elixir.
   See: http://okmij.org/ftp/Haskell/extensible/
   """
   @type t(effects) :: Pure.t(any) | Effect.t(effects)
 
-  import Effect.Curry
-  alias Effect.Queue, as: Q
+  import Effects.Curry
+  alias Effects.Queue, as: Q
 
   defmodule Pure do
     @moduledoc """
@@ -26,7 +26,7 @@ defmodule Effect do
 
   # ----------------------------------------------------------
   # Constructors
-  # Create new instances of "Free".
+  # Create new instances of "Effect".
   # ----------------------------------------------------------
   @doc """
   Create a new pure value.
@@ -149,9 +149,9 @@ defmodule Effect do
   """
   defmacro __using__(_) do
     quote do
-      import Free
-      alias Free.Pure
-      alias Free.Effect
+      import Effects
+      alias Effects.Pure
+      alias Effects.Effect
     end
   end
 
