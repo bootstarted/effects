@@ -458,6 +458,4 @@ The little elephant in the room. The free(r) monad (on which this is based) is g
 
 In the general case, however, interpreters are slower than running code directly; indeed every layer of abstraction typically comes with a cost like this. But the performance cost of your application will generally be dominated by your business logic and I/O operations – not a thin effects layer.
 
-There are benchmarks in `test/bench`.
-
 [pipeline]: https://github.com/metalabdesign/pipeline

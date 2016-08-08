@@ -1,4 +1,4 @@
-defmodule Effect.Queue do
+defmodule Effects.Queue do
   @moduledoc """
   Queue used internally by Effects for collecting a sequence of binds.
 
@@ -27,7 +27,7 @@ defmodule Effect.Queue do
   See: http://okmij.org/ftp/Haskell/Reflection.html
   """
 
-  alias Effect.Queue, as: Q
+  alias Effects.Queue, as: Q
 
   @type t(i, o) :: Q.Leaf.t(i, o) | Q.Node.t(i, o)
 

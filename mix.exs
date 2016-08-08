@@ -1,4 +1,4 @@
-defmodule Effect.Mixfile do
+defmodule Effects.Mixfile do
   use Mix.Project
 
   def project do [

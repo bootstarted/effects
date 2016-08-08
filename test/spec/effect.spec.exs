@@ -1,9 +1,9 @@
-defmodule Test.Free do
+defmodule Test.Effects do
   use ESpec
 
-  import Effect
-  alias Effect.Pure
-  alias Effect.Effect
+  import Effects
+  alias Effects.Pure
+  alias Effects.Effect
 
   defp interp(_, %Pure{value: value}) do
     value
