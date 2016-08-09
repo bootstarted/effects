@@ -153,4 +153,11 @@ defmodule Test.Effects do
     end
   end
 
+  describe "interpreter" do
+    it "should handle sequenced effects" do
+      effect = inc ~> inc ~> inc
+      expect 3 |> interp(effect) |> to(eq 6)
+    end
+  end
+
 end
